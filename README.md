@@ -1,198 +1,223 @@
-🖐️ Sign Language Detection System
-Real-Time ASL and ISL Hand Gesture Recognition using MediaPipe + Random Forest
-📜 1. Overview
+📚 Sign Language Detection System
 
-This project implements a real-time Sign Language Detection System designed to bridge communication gaps between the Deaf and Hard of Hearing (DHH) community and the hearing population.
+Real-Time ASL/ISL Recognition using MediaPipe & Random Forests
 
-The system intelligently detects static hand signs using:
+🧭 Overview
 
-MediaPipe → Hand landmark extraction (21 keypoints)
+This project bridges communication gaps between the Deaf & Hard of Hearing (DHH) community and the hearing population.
+It translates American Sign Language (ASL) and Indian Sign Language (ISL) hand gestures to text (and speech) using real-time computer vision.
 
-Random Forest Classifier → Lightweight, CPU-efficient gesture classification
+Unlike expensive sensor-based gloves or GPU-dependent CNNs, this system operates fully on CPU using:
 
-OpenCV → Vision feed and visual overlays
+MediaPipe for 21-landmark hand tracking
 
-Flask → Optional web-based inference
+Random Forest Classifier for high-accuracy predictions
 
-Unlike traditional approaches that rely on expensive sensors (like flex gloves or depth cameras), this solution needs only a regular webcam and runs smoothly on CPU, making it highly accessible and portable.
+🔍 Why This Approach?
 
-💡 Key Highlights
+Traditional systems rely on:
 
-🚀 Real-time gesture recognition (20–30 FPS)
+Flex-sensor gloves (expensive, non-portable)
 
-💻 Works on standard laptops (no GPU required)
+Depth sensors (hardware dependent)
 
-🎯 High classification accuracy using normalized geometric features
+CNNs (heavy computation, large datasets)
 
-🪶 Lightweight ML (Random Forest instead of CNN)
+This project:
 
-🌐 Flask web-based deployment available
+Uses lightweight mathematical landmark geometry
 
-🧠 2. Architecture Flow
-Webcam  ➜  MediaPipe  ➜  Landmark Normalization  ➜  Random Forest  ➜  Prediction Overlay (Text)
+Requires only tabular features (42 values)
 
-🗂️ 3. Project Structure
+Runs smoothly on low-end laptops
+
+🧠 Core Principles
+🖐 MediaPipe Hand Tracking
+
+Detects 21 3D hand landmarks
+
+Works in real time using BlazePalm + Landmark Model
+
+Bounding box reused to speed future frames
+
+🌲 Random Forest Classification
+
+Classifies gestures based on 42 normalized coordinates
+
+Fast CPU inference
+
+Stable and interpretable model
+
+🗂 Project Structure
 Sign-Language-Detector/
-│
-├── data/                        # Dataset images (organized per class)
+├── data/
 │   ├── A/
 │   ├── B/
 │   └── ...
-│
 ├── models/
-│   ├── data.pickle              # Saved geometric dataset
-│   └── model.p                  # Trained RandomForest model
-│
-├── static/                      # CSS / JS assets (for Flask UI)
-│
+│   ├── data.pickle
+│   └── model.p
+├── static/
+│   ├── css/
+│   └── js/
 ├── templates/
-│   └── index.html               # Web UI template
-│
-├── collect_imgs.py              # Capture hand gesture images
-├── create_dataset.py            # Extract + normalize landmarks
-├── train_classifier.py          # Train Random Forest
-├── inference_classifier.py      # Real-time desktop prediction
-├── app.py                       # Run Flask web application
-├── requirements.txt             # Dependencies
-└── README.md                    # Documentation
+│   └── index.html
+├── app.py
+├── collect_imgs.py
+├── create_dataset.py
+├── train_classifier.py
+├── inference_classifier.py
+├── requirements.txt
+└── README.md
 
-⚙️ 4. Installed Dependencies
-
-Core dependencies defined in requirements.txt:
-
-opencv-python
-
-mediapipe
-
-numpy
-
-scikit-learn
-
-flask
-
-pickle (built-in)
-
-torch, torchvision (reserved for future extension experiments)
-
-📦 5. Setup Instructions
-5.1 Clone Repository
-git clone https://github.com/<your-username>/Sign-Language-Detector.git
-cd Sign-Language-Detector
-
-5.2 Install Dependencies
+🛠 Technology Stack
+Technology	Purpose
+OpenCV	Camera input, visualization
+MediaPipe	Landmark detection
+Scikit-Learn	Random Forest classification
+Flask	Web-based deployment
+NumPy	Numerical feature manipulation
+Pickle	Model/data serialization
+📥 Installation
+git clone https://github.com/<your-username>/sign-language-detector.git
+cd sign-language-detector
 pip install -r requirements.txt
 
-5.3 Run Webcam Inference (Desktop)
-python inference_classifier.py
+📸 Phase I — Data Collection
 
-5.4 Start Flask Web App
-python app.py
-
-
-👉 Open browser at http://localhost:5000/
-
-🎥 6. Dataset Creation Workflow
-Step 1: Collect Images
-
-Captures multiple frames per sign with variations in:
-
-angle
-
-lighting
-
-distance
+Run:
 
 python collect_imgs.py
 
-Step 2: Feature Extraction (Landmarks)
+
+You will:
+
+Show gestures to webcam
+
+Press Q to start automatic capture
+
+~100 images per class recommended
+
+⚙ Phase II — Feature Extraction
+
+Run:
+
 python create_dataset.py
 
-Step 3: Train Model
+
+This:
+
+Extracts 21 landmarks
+
+Converts them to 42-D geometry
+
+Saves data.pickle
+
+🤖 Phase III — Training Model
+
+Run:
+
 python train_classifier.py
 
 
-Model accuracy is displayed and saved to models/model.p.
+Outputs:
 
-🔍 7. How It Works Internally
-7.1 MediaPipe Feature Extraction
+Training accuracy
 
-Detects 21 hand landmarks
+Stores model as model.p
 
-Normalizes each landmark:
+🗝 Phase IV — Real-Time Detection
 
-x' = x - min(x)
-y' = y - min(y)
+Run:
+
+python inference_classifier.py
 
 
-This makes gesture recognition invariant to:
+Displays:
 
-Hand position
+Hand bounding box
 
-Camera framing
+Predicted sign label
 
-7.2 Classification
+Latency: 20–30 FPS on CPU
 
-Using Random Forest because:
+🌐 Flask Web Deployment
 
-Extremely fast on CPU
+Run:
 
-Robust to variation
+python app.py
 
-Works well for small-dimensional tabular data
 
-Final feature vector:
+Browser:
 
-42 values → (21 landmarks × x,y)
+http://127.0.0.1:5000/
 
-🎯 8. Performance
+📊 How It Works — Simple Explanation
 
-✨ High FPS (20–30) even on CPU
+Camera feeds frames
 
-⚡ Prediction time in microseconds
+MediaPipe extracts 21 landmarks
 
-🧠 Accuracy: 90%+ achievable with clean data
+Coordinates are normalized
 
-🌐 9. Flask Web Deployment
+42-value vector goes to Random Forest
 
-Video streamed as multipart/x-mixed-replace
+Forest votes → predicted sign
 
-API-ready for:
+Display result
 
-Android Apps
+🚀 Performance & Insights
+Why Tabularization Works
 
-Desktop Apps
+Rather than classify millions of pixels, we classify 42 precise geometry values.
 
-Web Clients
+This is:
 
-🎓 10. Limitations
+Robust
 
-Recognizes static gestures only
+Lightweight
 
-Cannot differentiate gestures requiring:
+Deployable anywhere
 
-Movement (e.g., J, Z)
+Latency Optimization
 
-Relative position to body
+Bounding box reused
 
-🛣️ 11. Future Improvements
-Feature	Status
-Dynamic gesture recognition (LSTM)	🚧 Planned
-Two-hand gesture support	🚧 Planned
-Mobile ONNX / TensorFlow Lite deployment	🚧 Planned
-Auto-correction using NLP	🚧 Planned
-🙌 12. Author
+Model inference cost < 1 ms
 
-Developed by Niteesh Pandit
+Smooth webcam rendering
 
-🤝 Contributing
+🧭 Limitations & Future Enhancements
+Planned Improvements:
 
-Pull requests welcome!
-Feel free to fork and improve the system.
+✔ Dynamic sign recognition (LSTMs/GRUs)
+✔ 2-hand gesture support
+✔ NLP auto-correction
+✔ Mobile edge deployment (ONNX/TFLite)
 
-⭐ If You Like This Project
+🥇 Conclusion
 
-Consider ⭐ starring the repository and sharing it!
+This project proves that real-time sign recognition does not require deep learning or GPUs.
 
-📬 Contact
+It brings:
 
-For research collaboration, technical support, or suggestions—open an issue or contact via GitHub.
+Accuracy
+
+Accessibility
+
+Deployability
+
+A meaningful step toward inclusive communication.
+
+📬 Contribution
+
+Pull Requests welcome!
+If you’d like dataset access or improved models, open an issue.
+
+📜 License
+
+MIT License.
+
+👤 Author
+
+Niteesh Pandit
