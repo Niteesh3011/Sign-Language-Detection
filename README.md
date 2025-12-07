@@ -71,20 +71,16 @@ Sign-Language-Detector/
 └── README.md
 
 🛠 Technology Stack
- Technology	Purpose
- OpenCV	Camera input, visualization
- MediaPipe	Landmark detection
- Scikit-Learn	Random Forest classification
- Flask	Web-based deployment
- NumPy	Numerical feature manipulation
- Pickle	Model/data serialization
-
+Technology	Purpose
+OpenCV	Camera input, visualization
+MediaPipe	Landmark detection
+Scikit-Learn	Random Forest classification
+Flask	Web-based deployment
+NumPy	Numerical feature manipulation
+Pickle	Model/data serialization
 📥 Installation
-
 git clone https://github.com/<your-username>/sign-language-detector.git
-
 cd sign-language-detector
-
 pip install -r requirements.txt
 
 📸 Phase I — Data Collection
@@ -225,4 +221,3 @@ MIT License.
 👤 Author
 
 Niteesh Pandit
-
