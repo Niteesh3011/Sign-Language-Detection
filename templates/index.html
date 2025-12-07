@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Detector</title>
+    <style>
+        /* --- CSS STYLES --- */
+        body {
+            background-color: #0d1117;
+            color: #00f3ff;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-top: 20px;
+            text-shadow: 0 0 10px #00f3ff;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            width: 90%;
+            height: 80%;
+        }
+
+        .video-box {
+            flex: 3;
+            border: 2px solid #00f3ff;
+            background: #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The actual video image stream */
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none; /* Hidden until button pressed */
+        }
+
+        .controls {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid #30363d;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #00f3ff;
+            color: #00f3ff;
+            padding: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #00f3ff;
+            color: #000;
+            box-shadow: 0 0 15px #00f3ff;
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: #8b949e;
+            margin-top: 10px;
+        }
+
+        /* Scanline effect */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 243, 255, 0.5);
+            position: absolute;
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>NEURO<span style="color:white">SIGN</span> INTERFACE</h1>
+
+    <div class="main-container">
+        <div class="video-box">
+            <div class="scanline"></div>
+            <img id="videoElement" src="" alt="System Offline">
+        </div>
+
+        <div class="controls">
+            <div class="panel">
+                <h3>SYSTEM CONTROLS</h3>
+                <button onclick="startSystem()">INITIALIZE SYSTEM</button>
+                <div class="status-text" id="status">STATUS: STANDBY</div>
+            </div>
+
+            <div class="panel">
+                <h3>DIAGNOSTICS</h3>
+                <p>> Camera: <span style="color:lime">READY</span></p>
+                <p>> Model: <span style="color:lime">LOADED</span></p>
+                <p>> Latency: 24ms</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startSystem() {
+            const video = document.getElementById('videoElement');
+            const status = document.getElementById('status');
+            
+            // Point the image source to the Flask backend route
+            // We add a timestamp to force the browser to reload the image stream
+            video.src = "{{ url_for('video_feed') }}?" + new Date().getTime();
+            video.style.display = 'block';
+            
+            status.innerHTML = "STATUS: <span style='color:lime'>ONLINE - TRACKING ACTIVE</span>";
+        }
+    </script>
+</body>
+</html>
