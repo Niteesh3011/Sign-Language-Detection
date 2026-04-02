@@ -1,150 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Language Detector</title>
-    <style>
-        /* --- CSS STYLES --- */
-        body {
-            background-color: #0d1117;
-            color: #00f3ff;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuroSign — Detection Interface</title>
 
-        h1 {
-            margin-top: 20px;
-            text-shadow: 0 0 10px #00f3ff;
-        }
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-        .main-container {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-            width: 90%;
-            height: 80%;
-        }
-
-        .video-box {
-            flex: 3;
-            border: 2px solid #00f3ff;
-            background: #000;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-            border-radius: 8px;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* The actual video image stream */
-        #videoElement {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none; /* Hidden until button pressed */
-        }
-
-        .controls {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .panel {
-            background: rgba(13, 17, 23, 0.8);
-            border: 1px solid #30363d;
-            padding: 20px;
-            border-radius: 8px;
-        }
-
-        button {
-            background: transparent;
-            border: 1px solid #00f3ff;
-            color: #00f3ff;
-            padding: 15px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: 0.3s;
-            font-family: inherit;
-            font-weight: bold;
-            width: 100%;
-        }
-
-        button:hover {
-            background: #00f3ff;
-            color: #000;
-            box-shadow: 0 0 15px #00f3ff;
-        }
-
-        .status-text {
-            font-size: 0.9rem;
-            color: #8b949e;
-            margin-top: 10px;
-        }
-
-        /* Scanline effect */
-        .scanline {
-            width: 100%;
-            height: 2px;
-            background: rgba(0, 243, 255, 0.5);
-            position: absolute;
-            animation: scan 3s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-    </style>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-    <h1>NEURO<span style="color:white">SIGN</span> INTERFACE</h1>
+  <!-- Background layers -->
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
 
-    <div class="main-container">
-        <div class="video-box">
-            <div class="scanline"></div>
-            <img id="videoElement" src="" alt="System Offline">
-        </div>
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="logo">NEURO<span class="hl">SIGN</span></div>
 
-        <div class="controls">
-            <div class="panel">
-                <h3>SYSTEM CONTROLS</h3>
-                <button onclick="startSystem()">INITIALIZE SYSTEM</button>
-                <div class="status-text" id="status">STATUS: STANDBY</div>
-            </div>
-
-            <div class="panel">
-                <h3>DIAGNOSTICS</h3>
-                <p>> Camera: <span style="color:lime">READY</span></p>
-                <p>> Model: <span style="color:lime">LOADED</span></p>
-                <p>> Latency: 24ms</p>
-            </div>
-        </div>
+    <div class="topbar-center">
+      <div class="tb-stat">Model <span>YOLO26s</span></div>
+      <div class="tb-stat">Threshold <span>0.50</span></div>
+      <div class="tb-stat">Latency <span id="latencyVal">--ms</span></div>
+      <div class="tb-stat">Confidence <span id="confidenceVal">--%</span></div>
     </div>
 
-    <script>
-        function startSystem() {
-            const video = document.getElementById('videoElement');
-            const status = document.getElementById('status');
-            
-            // Point the image source to the Flask backend route
-            // We add a timestamp to force the browser to reload the image stream
-            video.src = "{{ url_for('video_feed') }}?" + new Date().getTime();
-            video.style.display = 'block';
-            
-            status.innerHTML = "STATUS: <span style='color:lime'>ONLINE - TRACKING ACTIVE</span>";
-        }
-    </script>
+    <div class="sys-status">
+      <div class="status-dot" id="systemStatus"></div>
+      <span id="statusText">SYSTEM STANDBY</span>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="dashboard">
+
+    <!-- Left: Video feed -->
+    <div class="glass">
+      <div class="panel-header">
+        <span class="panel-title">Camera Feed</span>
+        <span class="panel-badge" id="feedLabel">CAM_00 · OFFLINE</span>
+      </div>
+
+      <div class="video-wrapper">
+        <img id="videoFeed" src="" alt="feed" />
+
+        <!-- Offline placeholder -->
+        <div class="offline-overlay" id="offlineOverlay">
+          <div class="offline-icon">📷</div>
+          <div class="offline-text">Awaiting Initialization</div>
+        </div>
+
+        <!-- HUD elements -->
+        <div class="scan-line" id="scanLine"></div>
+        <div class="hud-corners">
+          <div class="hc-br"></div>
+          <div class="hc-bl"></div>
+        </div>
+        <div class="hud-label tl" id="hudTL">INPUT · --</div>
+        <div class="hud-label tr">YOLO26s</div>
+        <div class="hud-label bl" id="hudClock">--:--:--</div>
+        <div class="hud-label br" id="hudConf">CONF --</div>
+      </div>
+
+      <div class="video-bar">
+        <div class="vb-item">RESOLUTION <span>640×480</span></div>
+        <div class="vb-item">CODEC <span>MJPEG</span></div>
+        <div class="vb-item">BACKEND <span>FLASK</span></div>
+        <div class="vb-item">TASK <span>DETECTION</span></div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- Controls -->
+      <div class="glass" style="flex-shrink:0">
+        <div class="panel-header">
+          <span class="panel-title">System Controls</span>
+          <span class="panel-badge">v1.0</span>
+        </div>
+        <div class="btn-row">
+          <button class="hud-btn" id="startBtn"><span>▶ Initialize</span></button>
+          <button class="hud-btn danger" id="stopBtn" disabled><span>■ Terminate</span></button>
+        </div>
+      </div>
+
+      <!-- Diagnostics -->
+      <div class="glass" style="flex-shrink:0">
+        <div class="panel-header">
+          <span class="panel-title">Diagnostics</span>
+          <span class="panel-badge">LIVE</span>
+        </div>
+        <div class="diag-grid">
+          <div class="diag-cell">
+            <div class="diag-label">Camera</div>
+            <div class="diag-val ok">READY</div>
+          </div>
+          <div class="diag-cell">
+            <div class="diag-label">Model</div>
+            <div class="diag-val ok">LOADED</div>
+          </div>
+          <div class="diag-cell">
+            <div class="diag-label">Latency</div>
+            <div class="diag-val" id="diagLatency">--ms</div>
+          </div>
+          <div class="diag-cell">
+            <div class="diag-label">Confidence</div>
+            <div class="diag-val" id="diagConf">--%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal log -->
+      <div class="glass terminal-panel">
+        <div class="panel-header">
+          <span class="panel-title">System Log</span>
+          <span class="panel-badge" id="logCount">0 ENTRIES</span>
+        </div>
+        <div class="terminal-body" id="terminalLog"></div>
+        <div class="terminal-prompt">
+          <span style="color:var(--cyan)">root@neurosign</span>:<span style="color:var(--purple)">~$</span>
+          <span class="caret"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

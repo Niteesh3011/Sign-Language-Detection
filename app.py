@@ -1,119 +1,143 @@
 import cv2
-import numpy as np
-import pickle
 import os
-import mediapipe as mp
 from flask import Flask, render_template, Response
+from ultralytics import YOLO
 
 app = Flask(__name__)
 
-# --- 1. Robust Model Loading ---
-model_path = './model.p'
-if not os.path.exists(model_path):
-    # Check alternate location
-    model_path = './models/model.p'
+# ─────────────────────────────────────────────
+# 1. Model Loading  (YOLO26s)
+# ─────────────────────────────────────────────
+# YOLO26 is NMS-free (end-to-end), so no post-processing step needed.
+# The Ultralytics API is identical to YOLOv8/YOLO11 — just load and predict.
+
+MODEL_CANDIDATES = [
+    'best.pt',
+    os.path.join('models', 'best.pt'),
+    os.path.join('weights', 'best.pt'),
+]
 
 model = None
-try:
-    if os.path.exists(model_path):
-        model_dict = pickle.load(open(model_path, 'rb'))
-        model = model_dict['model']
-        print(f"✅ Model loaded successfully from: {model_path}")
-    else:
-        print("⚠️ Model file not found! Prediction will be disabled.")
-except Exception as e:
-    print(f"❌ Error loading model: {e}")
+for candidate in MODEL_CANDIDATES:
+    if os.path.exists(candidate):
+        try:
+            model = YOLO(candidate)
+            print(f"✅ YOLO26s model loaded successfully from: {candidate}")
+        except Exception as e:
+            print(f"❌ Error loading model from {candidate}: {e}")
+        break
 
-# --- 2. Setup MediaPipe ---
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
+if model is None:
+    print("⚠️  No model file found. Place best.pt in the project root or a 'models/' folder.")
 
-# --- 3. Labels Dictionary (Optional but Recommended) ---
-# If your model predicts numbers (0, 1, 2), map them to letters here.
-# If your model predicts letters directly, this won't be used.
-labels_dict = {0: 'A', 1: 'B', 2: 'C'} 
 
+# ─────────────────────────────────────────────
+# 2. Configuration
+# ─────────────────────────────────────────────
+CONFIDENCE_THRESHOLD = 0.5   # Minimum confidence to show a prediction
+BOX_COLOR           = (0, 255, 0)   # Green bounding boxes
+TEXT_COLOR          = (0, 255, 0)
+BOX_THICKNESS       = 2
+FONT                = cv2.FONT_HERSHEY_SIMPLEX
+FONT_SCALE          = 0.8
+FONT_THICKNESS      = 2
+
+
+# ─────────────────────────────────────────────
+# 3. Frame Generator
+# ─────────────────────────────────────────────
 def gen_frames():
     cap = cv2.VideoCapture(0)
-    
+
+    if not cap.isOpened():
+        print("❌ Could not open webcam.")
+        return
+
     while True:
         success, frame = cap.read()
         if not success:
+            print("⚠️  Failed to grab frame.")
             break
 
-        # Flip frame for mirror effect (easier for user)
-        # frame = cv2.flip(frame, 1)
+        annotated_frame = frame.copy()
 
-        H, W, _ = frame.shape
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(frame_rgb)
+        if model is not None:
+            try:
+                # YOLO26 is NMS-free — no need to set iou or agnostic_nms.
+                # End-to-end inference handles post-processing internally.
+                results = model.predict(
+                    source=frame,
+                    conf=CONFIDENCE_THRESHOLD,
+                    verbose=False
+                )
 
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                mp_drawing.draw_landmarks(
-                    frame,
-                    hand_landmarks,
-                    mp_hands.HAND_CONNECTIONS,
-                    mp_drawing_styles.get_default_hand_landmarks_style(),
-                    mp_drawing_styles.get_default_hand_connections_style())
+                for result in results:
+                    # ── Detection / Segmentation ──────────────────────
+                    if result.boxes is not None and len(result.boxes):
+                        for box in result.boxes:
+                            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                            conf  = float(box.conf[0])
+                            cls   = int(box.cls[0])
+                            label = model.names.get(cls, str(cls))
 
-                data_aux = []
-                x_ = []
-                y_ = []
+                            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2),
+                                          BOX_COLOR, BOX_THICKNESS)
 
-                for i in range(len(hand_landmarks.landmark)):
-                    x = hand_landmarks.landmark[i].x
-                    y = hand_landmarks.landmark[i].y
-                    x_.append(x)
-                    y_.append(y)
+                            display_text = f"{label} {conf:.2f}"
+                            (tw, th), _ = cv2.getTextSize(
+                                display_text, FONT, FONT_SCALE, FONT_THICKNESS)
 
-                for i in range(len(hand_landmarks.landmark)):
-                    data_aux.append(hand_landmarks.landmark[i].x - min(x_))
-                    data_aux.append(hand_landmarks.landmark[i].y - min(y_))
+                            # Background rectangle for text readability
+                            cv2.rectangle(annotated_frame,
+                                          (x1, y1 - th - 10), (x1 + tw + 6, y1),
+                                          BOX_COLOR, -1)
+                            cv2.putText(annotated_frame, display_text,
+                                        (x1 + 3, y1 - 5), FONT, FONT_SCALE,
+                                        (0, 0, 0), FONT_THICKNESS, cv2.LINE_AA)
 
-                # --- PREDICTION LOGIC ---
-                if model:
-                    try:
-                        # Make prediction
-                        prediction = model.predict([np.asarray(data_aux)])
-                        
-                        # Handle the output
-                        pred_val = prediction[0]
-                        
-                        # If model returns a number, try to map it, otherwise use as string
-                        if isinstance(pred_val, (int, np.integer)) and pred_val in labels_dict:
-                            predicted_character = labels_dict[pred_val]
-                        else:
-                            predicted_character = str(pred_val)
+                    # ── Classification (no boxes) ─────────────────────
+                    elif result.probs is not None:
+                        top_cls   = int(result.probs.top1)
+                        top_conf  = float(result.probs.top1conf)
+                        label     = model.names.get(top_cls, str(top_cls))
+                        display_text = f"{label}: {top_conf:.2f}"
 
-                        # Draw Box & Text
-                        x1 = int(min(x_) * W) - 10
-                        y1 = int(min(y_) * H) - 10
-                        x2 = int(max(x_) * W) - 10
-                        y2 = int(max(y_) * H) - 10
+                        cv2.putText(annotated_frame, display_text,
+                                    (20, 50), FONT, 1.2,
+                                    TEXT_COLOR, 2, cv2.LINE_AA)
 
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
-                        cv2.putText(frame, predicted_character, (x1, y1 - 10), 
-                                  cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 255, 0), 3, cv2.LINE_AA)
-                    
-                    except Exception as e:
-                        # This prints errors to your terminal if shape mismatch happens
-                        print(f"Prediction Error: {e}")
+            except Exception as e:
+                print(f"Inference error: {e}")
 
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        # Encode to JPEG and stream
+        ret, buffer = cv2.imencode('.jpg', annotated_frame)
+        if not ret:
+            continue
+
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
+    cap.release()
+
+
+# ─────────────────────────────────────────────
+# 4. Flask Routes
+# ─────────────────────────────────────────────
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/video_feed')
 def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(
+        gen_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
 
+
+# ─────────────────────────────────────────────
+# 5. Entry Point
+# ─────────────────────────────────────────────
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=5000)
