@@ -58,7 +58,7 @@ Sign Language Detector/
 3. Install dependencies.
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
+git clone https://github.com/Niteesh3011/Sign-Language-Detection.git
 cd "Sign Language Detector"
 python -m venv venv
 venv\Scripts\activate
