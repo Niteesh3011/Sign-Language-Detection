@@ -1,0 +1,38 @@
+# VCS and editor
+.git
+.github
+.vscode
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local environments
+venv/
+.venv/
+env/
+
+# Large artifacts and outputs
+runs/
+mlflow/
+logs/
+predictions.txt
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Dataset and notebooks
+American-sign-language-2/images/
+American-sign-language-2/labels/
+American-sign-language-2/American-sign-language-2/images/
+American-sign-language-2/American-sign-language-2/labels/
+Notebook/
+
+# OS files
+.DS_Store
+Thumbs.db

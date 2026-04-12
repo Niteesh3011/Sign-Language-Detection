@@ -23,7 +23,7 @@
     <div class="logo">NEURO<span class="hl">SIGN</span></div>
 
     <div class="topbar-center">
-      <div class="tb-stat">Model <span>YOLO26s</span></div>
+      <div class="tb-stat">Model <span>YOLO11l</span></div>
       <div class="tb-stat">Threshold <span>0.50</span></div>
       <div class="tb-stat">Latency <span id="latencyVal">--ms</span></div>
       <div class="tb-stat">Confidence <span id="confidenceVal">--%</span></div>
@@ -61,13 +61,13 @@
           <div class="hc-bl"></div>
         </div>
         <div class="hud-label tl" id="hudTL">INPUT · --</div>
-        <div class="hud-label tr">YOLO26s</div>
+        <div class="hud-label tr">YOLO11l</div>
         <div class="hud-label bl" id="hudClock">--:--:--</div>
         <div class="hud-label br" id="hudConf">CONF --</div>
       </div>
 
       <div class="video-bar">
-        <div class="vb-item">RESOLUTION <span>640×480</span></div>
+        <div class="vb-item">RESOLUTION <span>1280×720</span></div>
         <div class="vb-item">CODEC <span>MJPEG</span></div>
         <div class="vb-item">BACKEND <span>FLASK</span></div>
         <div class="vb-item">TASK <span>DETECTION</span></div>
@@ -81,7 +81,7 @@
       <div class="glass" style="flex-shrink:0">
         <div class="panel-header">
           <span class="panel-title">System Controls</span>
-          <span class="panel-badge">v1.0</span>
+          <span class="panel-badge">v2.0</span>
         </div>
         <div class="btn-row">
           <button class="hud-btn" id="startBtn"><span>▶ Initialize</span></button>
@@ -105,6 +105,10 @@
             <div class="diag-val ok">LOADED</div>
           </div>
           <div class="diag-cell">
+            <div class="diag-label">NLP</div>
+            <div class="diag-val" id="diagNlp">LOADING</div>
+          </div>
+          <div class="diag-cell">
             <div class="diag-label">Latency</div>
             <div class="diag-val" id="diagLatency">--ms</div>
           </div>
@@ -112,11 +116,41 @@
             <div class="diag-label">Confidence</div>
             <div class="diag-val" id="diagConf">--%</div>
           </div>
+          <div class="diag-cell">
+            <div class="diag-label">Words</div>
+            <div class="diag-val" id="diagWords">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Live Transcript (NLP) ── -->
+      <div class="glass transcript-panel" style="flex:1; display:flex; flex-direction:column;">
+        <div class="panel-header">
+          <span class="panel-title">Live Transcript · <span style="color:var(--cyan)">NLP</span></span>
+          <button class="hud-btn clear-btn" id="clearBtn" title="Clear transcript">✕ Clear</button>
+        </div>
+
+        <!-- Current words being formed -->
+        <div class="transcript-preview-box">
+          <div class="transcript-preview-label">WORD BUFFER</div>
+          <div id="wordPreview" class="transcript-preview">---</div>
+        </div>
+
+        <!-- All finalized sentences -->
+        <div class="transcript-body" id="transcriptBody">
+          <div class="transcript-empty" id="transcriptEmpty">No sentences yet — start signing…</div>
+        </div>
+
+        <!-- Save indicator -->
+        <div class="transcript-footer">
+          <span class="save-icon">💾</span>
+          <span id="saveStatus">Saved to <code>predictions.txt</code></span>
+          <span class="transcript-count" id="sentenceCount">0 sentences</span>
         </div>
       </div>
 
       <!-- Terminal log -->
-      <div class="glass terminal-panel">
+      <div class="glass terminal-panel" style="flex-shrink:0">
         <div class="panel-header">
           <span class="panel-title">System Log</span>
           <span class="panel-badge" id="logCount">0 ENTRIES</span>
